@@ -6,7 +6,7 @@ x-logging: &default-logging
     max-size: '5m'
     max-file: '1'
   driver: json-file
-  
+
 services:
   server:
     image: ghcr.io/bluesky-social/pds:latest
@@ -53,7 +53,7 @@ services:
     ports:
       - '172.17.0.1:59096:3000'
     volumes:
-      - /var/lib/srv/$USER/docker/bluesky-social/pds/latest/rootfs/config/pds:/pds
+      - '/var/lib/srv/$USER/docker/bluesky/rootfs/config/pds:/pds'
     networks:
       - bluesky
 
