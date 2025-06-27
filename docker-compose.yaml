@@ -1,0 +1,63 @@
+# nginx proxy address - http://172.17.0.1:59096
+
+name: bluesky
+x-logging: &default-logging
+  options:
+    max-size: '5m'
+    max-file: '1'
+  driver: json-file
+
+services:
+  server:
+    image: ghcr.io/bluesky-social/pds:latest
+    container_name: bluesky-server
+    domainname: ${BASE_DOMAIN_NAME:-}
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      - TZ=${TZ:-America/New_York}
+      - LOG_ENABLED=1
+      - LOG_LEVEL=info
+      - PUBLIC_IP=${PUBLIC_IP:-}
+      - NODE_TLS_REJECT_UNAUTHORIZED=0
+      - METADATA_URL=https://ifcfg.us
+      - PDS_DATADIR=/pds
+      - PDS_DATA_DIRECTORY=/pds
+      - PDS_BLOB_UPLOAD_LIMIT=52428800
+      - PDS_BLOBSTORE_DISK_LOCATION=/pds/blocks
+      - PDS_HOSTNAME=${BASE_DOMAIN_NAME:-$HOSTNAME}
+      - PDS_ADMIN_PASSWORD=${APP_ADMIN_PASS:-ISeV4d2fGBkS7YFl}
+      - PDS_ADMIN_EMAIL=administrator@${BASE_DOMAIN_NAME:-$HOSTNAME}
+      - PDS_JWT_SECRET=${APP_JWT_TOKEN:-d72b5968b5c727d6d1657a68e30451c6}
+      - PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX=${K256_PRIVATE_KEY:-5b981d1948b5cd7f54dbdfae69fd4aca58c9b66acb03498eefa813e31a1b1c03}
+      - PDS_CRAWLERS=https://bsky.network
+      - PDS_DID_PLC_URL=https://plc.directory
+      - PDS_BSKY_APP_VIEW_URL=https://api.bsky.app
+      - PDS_BSKY_APP_VIEW_DID=did:web:api.bsky.app
+      - PDS_REPORT_SERVICE_URL=https://mod.bsky.app
+      - PDS_REPORT_SERVICE_DID=did:plc:ar7c4by46qjdydhdevvrndac
+      - PDS_EMAIL_FROM_ADDRESS='${APP_ORG_NAME} BlueSky Server' <no-reply@${BASE_HOST_NAME:-$HOSTNAME}>
+      - PDS_EMAIL_SMTP_URL=smtp://${EMAIL_SERVER_HOST}:${EMAIL_SERVER_PORT:-587}
+      - PDS_INVITE_REQUIRED=0
+      - PDS_DISABLE_SSRF_PROTECTION=1
+      - PDS_OAUTH_PROVIDER_NAME='${APP_ORG_NAME} BlueSky Server'
+      - PDS_OAUTH_PROVIDER_LOGO='https://avatars.githubusercontent.com/u/126880'
+      - PDS_OAUTH_PROVIDER_PRIMARY_COLOR="#7507e3"
+      - PDS_OAUTH_PROVIDER_ERROR_COLOR=
+      - PDS_OAUTH_PROVIDER_HOME_LINK=
+      - PDS_OAUTH_PROVIDER_TOS_LINK=
+      - PDS_OAUTH_PROVIDER_POLICY_LINK=
+      - PDS_OAUTH_PROVIDER_SUPPORT_LINK=
+    ports:
+      - '172.17.0.1:59096:3000'
+    volumes:
+      - './rootfs/config/pds:/pds'
+    networks:
+      - bluesky
+
+networks:
+  bluesky:
+    name: bluesky
+    external: false
