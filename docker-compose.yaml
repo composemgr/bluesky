@@ -109,7 +109,7 @@ services:
     ports:
       - '172.17.0.1:59096:3000'
     volumes:
-      - './rootfs/data/bluesky:/pds'
+      - './volumes/data/bluesky:/pds'
     networks:
       - bluesky
 
