@@ -1,6 +1,5 @@
 ## 👋 Welcome to bluesky 🚀
 
-<<<<<<< HEAD
 Self Hosted bluesky server
 
 ## Security Configuration
@@ -54,9 +53,6 @@ docker exec bluesky-server pdsadmin account create
 # View logs
 docker logs bluesky-server
 ```
-=======
-bluesky - Self-hosted Docker Compose deployment
->>>>>>> 61ac142c75b6 (🗃️ Major updates 🗃️)
 
 ## 📋 Description
 
