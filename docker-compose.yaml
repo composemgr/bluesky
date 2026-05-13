@@ -40,6 +40,8 @@ services:
     pull_policy: always
     logging: *default-logging
     environment:
+      - 'CONTAINER_NAME=bluesky-server'
+      - 'HOSTNAME=${BASE_HOST_NAME:-$HOSTNAME}'
       # =============================================================================
       # SECURITY HARDENED CONFIGURATION
       # =============================================================================
@@ -95,10 +97,32 @@ services:
       - '172.17.0.1:59096:3000'
     volumes:
       - './volumes/data/bluesky:/pds'
+    labels:
+      - 'traefik.enable=true'
+      - 'cloudflare.enable=true'
+      - 'traefik.docker.network=proxy'
+      - 'cloudflare.service=http://bluesky-server:3000'
+      - 'cloudflare.hostname=bluesky.${CLOUDFLARE_ZONE_NAME:-}'
+      - 'traefik.http.routers.bluesky-server.entrypoints=http'
+      - 'traefik.http.routers.bluesky-server-secure.tls=true'
+      - 'traefik.http.routers.bluesky-server.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.middlewares.bluesky-server-https-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.routers.bluesky-server.middlewares=bluesky-server-https-redirect'
+      - 'traefik.http.routers.bluesky-server-secure.entrypoints=https'
+      - 'traefik.http.routers.bluesky-server-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.routers.bluesky-server-secure.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.bluesky-server-secure.service=bluesky-server'
+      - 'traefik.http.services.bluesky-server.loadbalancer.server.port=3000'
     networks:
       - bluesky
+      - proxy
+      - cloudflare
 
 networks:
   bluesky:
     name: bluesky
     external: false
+  proxy:
+    external: true
+  cloudflare:
+    external: true
