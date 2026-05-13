@@ -83,7 +83,7 @@ services:
       # SECURITY: Enable email verification for new accounts
       - PDS_EMAIL_VERIFICATION_REQUIRED=1
       # SECURITY: SSRF protection enabled by default (do not disable unless absolutely necessary)
-      - PDS_OAUTH_PROVIDER_NAME='${APP_ORG_NAME} BlueSky Server'
+      - PDS_OAUTH_PROVIDER_NAME='${APP_ORG_NAME:-MyOrg} BlueSky Server'
       - PDS_OAUTH_PROVIDER_LOGO='https://avatars.githubusercontent.com/u/126880'
       - PDS_OAUTH_PROVIDER_PRIMARY_COLOR="#7507e3"
       - PDS_OAUTH_PROVIDER_ERROR_COLOR=
