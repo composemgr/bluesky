@@ -1,0 +1,62 @@
+name: bluesky
+x-logging: &default-logging
+  options:
+    max-size: '5m'
+    max-file: '1'
+  driver: json-file
+
+services:
+  server:
+    image: ghcr.io/bluesky-social/pds:latest
+    container_name: bluesky-server
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: bluesky-server
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
+      LOG_ENABLED: 1
+      LOG_LEVEL: info
+      PUBLIC_IP: ${PUBLIC_IP:-}
+      NODE_TLS_REJECT_UNAUTHORIZED: 0
+      METADATA_URL: https://ifcfg.us
+      PDS_DATADIR: /pds
+      PDS_DATA_DIRECTORY: /pds
+      PDS_BLOB_UPLOAD_LIMIT: 52428800
+      PDS_BLOBSTORE_DISK_LOCATION: /pds/blocks
+      PDS_HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
+      PDS_ADMIN_PASSWORD: "${APP_ADMIN_PASS:?ERROR: APP_ADMIN_PASS must be set}"
+      PDS_ADMIN_EMAIL: administrator@${BASE_HOST_NAME:-$HOSTNAME}
+      PDS_JWT_SECRET: "${APP_JWT_TOKEN:?ERROR: APP_JWT_TOKEN must be set}"
+      PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX: "${K256_PRIVATE_KEY:?ERROR: K256_PRIVATE_KEY must be set}"
+      PDS_CRAWLERS: https://bsky.network
+      PDS_DID_PLC_URL: https://plc.directory
+      PDS_BSKY_APP_VIEW_URL: https://api.bsky.app
+      PDS_BSKY_APP_VIEW_DID: did:web:api.bsky.app
+      PDS_REPORT_SERVICE_URL: https://mod.bsky.app
+      PDS_REPORT_SERVICE_DID: did:plc:ar7c4by46qjdydhdevvrndac
+      PDS_EMAIL_FROM_ADDRESS: ${EMAIL_SERVER_MAIL_FROM:-no-reply@${BASE_HOST_NAME:-$HOSTNAME}}
+      PDS_EMAIL_SMTP_URL: smtp://${EMAIL_SERVER_HOST:-172.17.0.1}:${EMAIL_SERVER_PORT:-587}
+      PDS_INVITE_REQUIRED: 1
+      PDS_EMAIL_VERIFICATION_REQUIRED: 1
+      PDS_OAUTH_PROVIDER_NAME: ${APP_ORG_NAME:-MyOrg} BlueSky Server
+      PDS_OAUTH_PROVIDER_LOGO: https://avatars.githubusercontent.com/u/126880
+      PDS_OAUTH_PROVIDER_PRIMARY_COLOR: '#7507e3'
+    volumes:
+      - './volumes/data/bluesky:/pds'
+    labels:
+      - 'cloudflare.enable=true'
+      - 'cloudflare.service=http://bluesky-server:3000'
+      - 'cloudflare.hostname=${BASE_HOST_NAME:-$HOSTNAME}'
+    networks:
+      - bluesky
+      - cloudflare
+
+networks:
+  bluesky:
+    name: bluesky
+    external: false
+  cloudflare:
+    external: true

@@ -1,27 +1,4 @@
-# nginx proxy address - http://172.17.0.1:59096
-#
-# =============================================================================
-# REQUIRED ENVIRONMENT VARIABLES (create .env file or set in your shell)
-# =============================================================================
-# Before starting this service, you MUST set these environment variables:
-#
-# APP_ADMIN_PASS - Strong admin password (generate: openssl rand -base64 32)
-# APP_JWT_TOKEN  - JWT secret key (generate: openssl rand -hex 32)
-# K256_PRIVATE_KEY - PLC rotation key (generate: openssl ecparam -name secp256k1 -genkey -noout -outform DER | tail -c +8 | head -c 32 | xxd -p -c 32)
-#
-# Recommended environment variables:
-# BASE_DOMAIN_NAME - Your domain (e.g., pds.example.com)
-# BASE_HOST_NAME   - Hostname for the server
-# PUBLIC_IP        - Your server's public IP address
-# EMAIL_SERVER_HOST - SMTP server hostname
-# EMAIL_SERVER_PORT - SMTP server port (default: 587)
-# APP_ORG_NAME     - Your organization name
-#
-# Account Management:
-# - Create invite codes: docker exec bluesky-server pdsadmin create-invite-code
-# - Create admin account: docker exec bluesky-server pdsadmin account create
-# - View logs: docker logs bluesky-server
-# =============================================================================
+# nginx proxy address - http://172.17.0.1:64122
 
 name: bluesky
 x-logging: &default-logging
@@ -34,95 +11,49 @@ services:
   server:
     image: ghcr.io/bluesky-social/pds:latest
     container_name: bluesky-server
-    domainname: ${BASE_DOMAIN_NAME:-}
     hostname: ${BASE_HOST_NAME:-$HOSTNAME}
     restart: always
     pull_policy: always
     logging: *default-logging
     environment:
-      - 'CONTAINER_NAME=bluesky-server'
-      - 'HOSTNAME=${BASE_HOST_NAME:-$HOSTNAME}'
-      # =============================================================================
-      # SECURITY HARDENED CONFIGURATION
-      # =============================================================================
-      # This PDS is configured with security best practices to prevent spam/abuse:
-      # - Invite-only registration (PDS_INVITE_REQUIRED=1)
-      # - Email verification required (PDS_EMAIL_VERIFICATION_REQUIRED=1)
-      # - SSRF protection enabled (default)
-      # - Strong credentials required (no defaults)
-      # - Rate limiting enforced by Bluesky Relay: 10 accounts max, 1,500 events/hr
-      # =============================================================================
-      - TZ=${TZ:-America/New_York}
-      - LOG_ENABLED=1
-      - LOG_LEVEL=info
-      - PUBLIC_IP=${PUBLIC_IP:-}
-      - NODE_TLS_REJECT_UNAUTHORIZED=0
-      - METADATA_URL=https://ifcfg.us
-      - PDS_DATADIR=/pds
-      - PDS_DATA_DIRECTORY=/pds
-      - PDS_BLOB_UPLOAD_LIMIT=52428800
-      - PDS_BLOBSTORE_DISK_LOCATION=/pds/blocks
-      - PDS_HOSTNAME=${BASE_DOMAIN_NAME:-$HOSTNAME}
-      # SECURITY: Set strong unique values in your environment or .env file
-      # Generate with: openssl rand -base64 32
-      - PDS_ADMIN_PASSWORD=${APP_ADMIN_PASS:?ERROR: APP_ADMIN_PASS must be set}
-      - PDS_ADMIN_EMAIL=administrator@${BASE_DOMAIN_NAME:-$HOSTNAME}
-      # Generate with: openssl rand -hex 32
-      - PDS_JWT_SECRET=${APP_JWT_TOKEN:?ERROR: APP_JWT_TOKEN must be set}
-      # Generate with: openssl ecparam -name secp256k1 -genkey -noout -outform DER | tail -c +8 | head -c 32 | xxd -p -c 32
-      - PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX=${K256_PRIVATE_KEY:?ERROR: K256_PRIVATE_KEY must be set}
-      - PDS_CRAWLERS=https://bsky.network
-      - PDS_DID_PLC_URL=https://plc.directory
-      - PDS_BSKY_APP_VIEW_URL=https://api.bsky.app
-      - PDS_BSKY_APP_VIEW_DID=did:web:api.bsky.app
-      - PDS_REPORT_SERVICE_URL=https://mod.bsky.app
-      - PDS_REPORT_SERVICE_DID=did:plc:ar7c4by46qjdydhdevvrndac
-      - PDS_EMAIL_FROM_ADDRESS='${APP_ORG_NAME} BlueSky Server' <no-reply@${BASE_HOST_NAME:-$HOSTNAME}>
-      - PDS_EMAIL_SMTP_URL=smtp://${EMAIL_SERVER_HOST}:${EMAIL_SERVER_PORT:-587}
-      # SECURITY: Require invite codes to prevent spam/abuse (set to 1)
-      # Generate invite codes with: docker exec bluesky-server pdsadmin create-invite-code
-      - PDS_INVITE_REQUIRED=1
-      # SECURITY: Enable email verification for new accounts
-      - PDS_EMAIL_VERIFICATION_REQUIRED=1
-      # SECURITY: SSRF protection enabled by default (do not disable unless absolutely necessary)
-      - PDS_OAUTH_PROVIDER_NAME='${APP_ORG_NAME:-MyOrg} BlueSky Server'
-      - PDS_OAUTH_PROVIDER_LOGO='https://avatars.githubusercontent.com/u/126880'
-      - PDS_OAUTH_PROVIDER_PRIMARY_COLOR="#7507e3"
-      - PDS_OAUTH_PROVIDER_ERROR_COLOR=
-      - PDS_OAUTH_PROVIDER_HOME_LINK=
-      - PDS_OAUTH_PROVIDER_TOS_LINK=
-      - PDS_OAUTH_PROVIDER_POLICY_LINK=
-      - PDS_OAUTH_PROVIDER_SUPPORT_LINK=
+      TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: bluesky-server
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
+      LOG_ENABLED: 1
+      LOG_LEVEL: info
+      PUBLIC_IP: ${PUBLIC_IP:-}
+      NODE_TLS_REJECT_UNAUTHORIZED: 0
+      METADATA_URL: https://ifcfg.us
+      PDS_DATADIR: /pds
+      PDS_DATA_DIRECTORY: /pds
+      PDS_BLOB_UPLOAD_LIMIT: 52428800
+      PDS_BLOBSTORE_DISK_LOCATION: /pds/blocks
+      PDS_HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
+      PDS_ADMIN_PASSWORD: "${APP_ADMIN_PASS:?ERROR: APP_ADMIN_PASS must be set}"
+      PDS_ADMIN_EMAIL: administrator@${BASE_HOST_NAME:-$HOSTNAME}
+      PDS_JWT_SECRET: "${APP_JWT_TOKEN:?ERROR: APP_JWT_TOKEN must be set}"
+      PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX: "${K256_PRIVATE_KEY:?ERROR: K256_PRIVATE_KEY must be set}"
+      PDS_CRAWLERS: https://bsky.network
+      PDS_DID_PLC_URL: https://plc.directory
+      PDS_BSKY_APP_VIEW_URL: https://api.bsky.app
+      PDS_BSKY_APP_VIEW_DID: did:web:api.bsky.app
+      PDS_REPORT_SERVICE_URL: https://mod.bsky.app
+      PDS_REPORT_SERVICE_DID: did:plc:ar7c4by46qjdydhdevvrndac
+      PDS_EMAIL_FROM_ADDRESS: ${EMAIL_SERVER_MAIL_FROM:-no-reply@${BASE_HOST_NAME:-$HOSTNAME}}
+      PDS_EMAIL_SMTP_URL: smtp://${EMAIL_SERVER_HOST:-172.17.0.1}:${EMAIL_SERVER_PORT:-587}
+      PDS_INVITE_REQUIRED: 1
+      PDS_EMAIL_VERIFICATION_REQUIRED: 1
+      PDS_OAUTH_PROVIDER_NAME: ${APP_ORG_NAME:-MyOrg} BlueSky Server
+      PDS_OAUTH_PROVIDER_LOGO: https://avatars.githubusercontent.com/u/126880
+      PDS_OAUTH_PROVIDER_PRIMARY_COLOR: '#7507e3'
     ports:
-      - '172.17.0.1:59096:3000'
+      - '172.17.0.1:64122:3000'
     volumes:
       - './volumes/data/bluesky:/pds'
-    labels:
-      - 'traefik.enable=true'
-      - 'cloudflare.enable=true'
-      - 'traefik.docker.network=proxy'
-      - 'cloudflare.service=http://bluesky-server:3000'
-      - 'cloudflare.hostname=bluesky.${CLOUDFLARE_ZONE_NAME:-}'
-      - 'traefik.http.routers.bluesky-server.entrypoints=http'
-      - 'traefik.http.routers.bluesky-server-secure.tls=true'
-      - 'traefik.http.routers.bluesky-server.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.middlewares.bluesky-server-https-redirect.redirectscheme.scheme=https'
-      - 'traefik.http.routers.bluesky-server.middlewares=bluesky-server-https-redirect'
-      - 'traefik.http.routers.bluesky-server-secure.entrypoints=https'
-      - 'traefik.http.routers.bluesky-server-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.routers.bluesky-server-secure.tls.certresolver=cloudflare'
-      - 'traefik.http.routers.bluesky-server-secure.service=bluesky-server'
-      - 'traefik.http.services.bluesky-server.loadbalancer.server.port=3000'
     networks:
       - bluesky
-      - proxy
-      - cloudflare
 
 networks:
   bluesky:
     name: bluesky
     external: false
-  proxy:
-    external: true
-  cloudflare:
-    external: true

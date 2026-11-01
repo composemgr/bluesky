@@ -1,235 +1,162 @@
 ## 👋 Welcome to bluesky 🚀
 
-Self Hosted bluesky server
-
-## Security Configuration
-
-This PDS is configured with security best practices to prevent spam and abuse:
-
-- **Invite-only registration** - Users need invite codes to create accounts
-- **Email verification required** - All new accounts must verify their email
-- **SSRF protection enabled** - Prevents internal network attacks
-- **Strong credentials required** - No default passwords or secrets
-- **Rate limiting** - Bluesky Relay enforces 10 accounts max, 1,500 events/hour per PDS
-
-## Required Setup
-
-Before starting the service, you MUST set these environment variables:
-
-```bash
-# Generate admin password
-export APP_ADMIN_PASS=$(openssl rand -base64 32)
-
-# Generate JWT secret
-export APP_JWT_TOKEN=$(openssl rand -hex 32)
-
-# Generate K256 private key
-export K256_PRIVATE_KEY=$(openssl ecparam -name secp256k1 -genkey -noout -outform DER | tail -c +8 | head -c 32 | xxd -p -c 32)
-
-# Set your domain and SMTP settings
-export BASE_DOMAIN_NAME="pds.yourdomain.com"
-export EMAIL_SERVER_HOST="smtp.example.com"
-export EMAIL_SERVER_PORT="587"
-export APP_ORG_NAME="Your Organization"
-```
-
-Or create a `.env` file in the project directory with these variables.
-
-## Starting the Service
-
-```bash
-docker-compose up -d
-```
-
-## Account Management
-
-```bash
-# Create invite codes
-docker exec bluesky-server pdsadmin create-invite-code
-
-# Create admin account
-docker exec bluesky-server pdsadmin account create
-
-# View logs
-docker logs bluesky-server
-```
+Self-hosted Bluesky (AT Protocol) Personal Data Server
 
 ## 📋 Description
 
-Bluesky is a containerized service deployed using Docker Compose. This setup provides a complete, production-ready deployment with proper security defaults, logging, and configuration management.
+Runs the official Bluesky Personal Data Server (PDS). Accounts are
+invite-only and require e-mail verification. The PDS stores account data and
+blobs under `./volumes/data/bluesky`.
 
 ## 🚀 Services
 
-This deployment includes the following services:
-
-- **server**: Service container
+- **server**: ghcr.io/bluesky-social/pds:latest
 
 ## 📦 Installation
 
-### Using curl
-
-```shell
+### Option 1: Quick Install
+```bash
 curl -q -LSsf "https://raw.githubusercontent.com/composemgr/bluesky/main/docker-compose.yaml" -o compose.yml
 ```
 
-### Using git
-
-```shell
+### Option 2: Git Clone
+```bash
 git clone "https://github.com/composemgr/bluesky" ~/.local/srv/docker/bluesky
 cd ~/.local/srv/docker/bluesky
-docker compose up -d
+cp default.env .env
+cat app.env.sample >> .env
+docker compose --env-file .env up -d
 ```
 
-### Using composemgr
+The PDS refuses to start without `APP_ADMIN_PASS`, `APP_JWT_TOKEN` and
+`K256_PRIVATE_KEY`, so set them in `.env` (or `app.env` for composemgr) first.
 
-```shell
+### Option 3: Using composemgr
+```bash
 composemgr install bluesky
 ```
 
 ## 🔧 Configuration
 
-### Directory Structure
-
-The project follows a standardized volumes layout:
-
-```
-.
-├── docker-compose.yaml
-└── volumes/
-    ├── config/          # Application configuration files
-    ├── data/            # Application data and logs
-```
-
 ### Environment Variables
 
-Key environment variables (with defaults):
-
 ```shell
-# Core Settings
-TZ=America/New_York                    # Timezone
-BASE_HOST_NAME=${HOSTNAME}             # Hostname for the service
-BASE_DOMAIN_NAME=                      # Domain name (optional)
-
-# Email/SMTP Settings
-EMAIL_SERVER_HOST=172.17.0.1           # SMTP server address
-EMAIL_SERVER_PORT=587                  # SMTP server port
-EMAIL_SERVER_MAIL_FROM=no-reply@${BASE_DOMAIN_NAME:-${BASE_HOST_NAME}}
-EMAIL_SERVER_FROM_ORG=bluesky   # From organization name
+TZ=America/New_York
+APP_ORG_NAME=MyOrg
+APP_ADMIN_PASS=replace-with-a-random-password
+APP_JWT_TOKEN=replace-with-a-random-32-character-hex-string
+K256_PRIVATE_KEY=replace-with-a-random-64-character-hex-string
+PUBLIC_IP=
+EMAIL_SERVER_HOST=172.17.0.1
+EMAIL_SERVER_PORT=587
+EMAIL_SERVER_MAIL_FROM=no-reply@example.com
 ```
 
-All variables have sane defaults and can be overridden via `.env` or `app.env` files.
+Generate the required secrets with:
+
+```bash
+openssl rand -base64 32
+openssl rand -hex 32
+openssl ecparam -name secp256k1 -genkey -noout -outform DER | tail -c +8 | head -c 32 | xxd -p -c 32
+```
+
+See `docker-compose.yaml` for the complete list of configurable options.
+
+### Environment Files
+
+`default.env.sample` holds the full set of variables and is copied to `.env`
+before starting the stack:
+
+```bash
+cp default.env .env
+docker compose --env-file .env up -d
+```
+
+`app.env.sample` holds the app-specific overrides and is copied to `app.env`:
+
+```bash
+cp app.env.sample app.env
+```
+
+`composemgr up` applies `app.env` and `default.env` automatically. Raw
+`docker compose` commands need `--env-file .env` to pick up the same values.
+
+### Reverse Proxy
+
+Three standalone compose files ship in this repo:
+
+| File | Use |
+|------|-----|
+| `docker-compose.yaml` | Default, published on `172.17.0.1:64122` |
+| `docker-compose.traefik.yaml` | Behind an existing external `traefik` network |
+| `docker-compose.tunnel.yaml` | Behind an existing external `cloudflare` tunnel network |
+
+```bash
+docker compose -f docker-compose.traefik.yaml --env-file .env up -d
+```
+
+The proxy variants publish no host ports; the app is reached only through the
+proxy network.
 
 ## 🌐 Access
 
-- **Web Interface**: http://172.17.0.1:59096
-- **Production**: Configure your reverse proxy to forward to port 59096
+- **Web Interface**: http://172.17.0.1:64122
 
-For production deployments, use a reverse proxy (nginx, traefik, caddy) to handle SSL/TLS.
+The PDS must be reachable over HTTPS on `BASE_HOST_NAME`; terminate TLS in your
+reverse proxy.
+
+Create invite codes through the PDS admin API, authenticating as `admin` with
+`APP_ADMIN_PASS`:
+
+```bash
+curl -X POST "https://bluesky.example.com/xrpc/com.atproto.server.createInviteCode" \
+  -u "admin:${APP_ADMIN_PASS}" -H "Content-Type: application/json" \
+  -d '{"useCount": 1}'
+```
 
 ## 📂 Volumes
 
-Data persistence locations:
-
-- `./volumes/config/` - Application configuration
-- `./volumes/data/` - Application data and logs
+- `./volumes/data/bluesky` - PDS account data, repositories, and blobs
 
 ## 🔐 Security
 
-- All secrets use secure defaults with `changeme_*` prefix for easy identification
-- No hardcoded passwords in compose file  
-- Environment-based configuration for sensitive data
-- Logging configured with rotation (5MB max, 1 file retained)
-- SMTP configured for Docker gateway (172.17.0.1:587)
+- Change all default passwords before deploying to production
+- Use strong secrets for all authentication tokens
+- Configure HTTPS using a reverse proxy (nginx, traefik, caddy)
+- Regularly update Docker images for security patches
+- Backup your data regularly
+- Registration is invite-only and e-mail verification is required
+- Keep `K256_PRIVATE_KEY` secret and backed up: it is the PLC rotation key
 
 ## 🔍 Logging
 
-All services use standardized logging:
-- **Driver**: json-file
-- **Max Size**: 5MB per file
-- **Max Files**: 1 (rotated)
-
-View logs:
 ```shell
-docker compose logs -f
-docker compose logs -f [service_name]
+docker compose --env-file .env logs -f server
 ```
 
 ## 🛠️ Management
 
-### Start services
-```shell
-docker compose up -d
-```
+```bash
+# Start services
+docker compose --env-file .env up -d
 
-### Stop services
-```shell
-docker compose down
-```
+# Stop services
+docker compose --env-file .env down
 
-### Restart services
-```shell
-docker compose restart
-```
+# Update to latest images
+docker compose --env-file .env pull && docker compose --env-file .env up -d
 
-### Update images
-```shell
-docker compose pull
-docker compose up -d
-```
+# View logs
+docker compose --env-file .env logs -f
 
-### View status
-```shell
-docker compose ps
-```
-
-### Execute commands in container
-```shell
-docker compose exec [service_name] [command]
-```
-
-## 🔄 Backup & Restore
-
-### Backup
-```shell
-# Backup volumes
-tar -czf bluesky-backup-$(date +%Y%m%d).tar.gz volumes/
-```
-
-### Restore
-```shell
-# Restore from backup
-tar -xzf bluesky-backup-YYYYMMDD.tar.gz
-docker compose up -d
+# Restart services
+docker compose --env-file .env restart
 ```
 
 ## 📋 Requirements
 
 - Docker Engine 20.10+
 - Docker Compose V2+
-- Sufficient disk space for data and logs
-
-## 🆘 Troubleshooting
-
-### Check service status
-```shell
-docker compose ps
-```
-
-### View detailed logs
-```shell
-docker compose logs --tail=100 -f
-```
-
-### Restart a specific service
-```shell
-docker compose restart [service_name]
-```
-
-### Reset and start fresh
-```shell
-docker compose down -v
-docker compose up -d
-```
 
 ## 🤝 Author
 
